@@ -14,15 +14,20 @@ coleccion_jugadores = db['jugadores']
 
 @app.route('/api/jugadores')
 def obtener_jugadores():
-    jugadores_lista = []
-    for jugador in coleccion_jugadores.find():
-        jugadores_lista.append({
-            "id": str(jugador["_id"]),
-            "nombre": jugador.get("nombre", "Sin Nombre"),
-            "posicion": jugador.get("posicion", "Sin Posición"),
-            "numero": jugador.get("numero", 0)
-        })
-    return jsonify(jugadores_lista)
+    try:
+        jugadores_lista = []
+        # Intentamos buscar en Mongo
+        for jugador in coleccion_jugadores.find():
+            jugadores_lista.append({
+                "id": str(jugador["_id"]),
+                "nombre": jugador.get("nombre", "Sin Nombre"),
+                "posicion": jugador.get("posicion", "Sin Posición"),
+                "numero": jugador.get("numero", 0)
+            })
+        return jsonify(jugadores_lista)
+    except Exception as e:
+        # Si algo falla, mostramos el error real en la pantalla
+        return jsonify({"error_tecnico": str(e)}), 500
 
 if __name__ == '__main__':
     # Render asigna el puerto automáticamente
