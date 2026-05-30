@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Roster - Ajolotes de Tlaxcala</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background-color: #f4f4f9; }
+        button { padding: 10px 20px; font-size: 16px; background-color: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer;}
+        .estado { margin-top: 15px; font-weight: bold; color: #333; }
+        ul { background: white; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 400px;}
+        li { list-style: none; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 5px;}
+    </style>
+</head>
+<body>
+    <h1>Roster Oficial - Ajolotes de Tlaxcala</h1>
+    <button onclick="cargarRoster()">Cargar Roster de Jugadores</button>
+    <div class="estado" id="estado">Estado: Esperando acción...</div>
+    <ul id="lista-jugadores"></ul>
+
+    <script>
+        // === LA URL DE TU SERVIDOR EN RENDER (Ya configurada) ===
+        const API_URL = 'https://api-ajolotes.onrender.com/api/jugadores'; 
+        const DB_NAME = 'AjolotesDB';
+        let db;
+
+        const request = indexedDB.open(DB_NAME, 1);
+        
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            db.createObjectStore('roster', { keyPath: 'id' });
+        };
+        
+        request.onsuccess = (event) => { db = event.target.result; };
+
+        async function cargarRoster() {
+            const estadoDiv = document.getElementById('estado');
+            
+            const tx = db.transaction(['roster'], 'readonly');
+            const store = tx.objectStore('roster');
+            const peticionLectura = store.getAll();
+
+            peticionLectura.onsuccess = async () => {
+                const datosLocales = peticionLectura.result;
+
+                if (datosLocales.length > 0) {
+                    estadoDiv.innerText = "Estado: Roster cargado desde IndexedDB (Caché Local)";
+                    estadoDiv.style.color = "green";
+                    mostrarEnPantalla(datosLocales);
+                } else {
+                    estadoDiv.innerText = "Estado: Consultando a la nube (MongoDB Atlas)...";
+                    estadoDiv.style.color = "blue";
+                    
+                    try {
+                        const respuesta = await fetch(API_URL);
+                        const datosServidor = await respuesta.json();
+                        
+                        const txEscritura = db.transaction(['roster'], 'readwrite');
+                        const storeEscritura = txEscritura.objectStore('roster');
+                        datosServidor.forEach(jugador => storeEscritura.put(jugador));
+                        
+                        estadoDiv.innerText = "Estado: Descargado de Mongo y guardado en IndexedDB ✅";
+                        mostrarEnPantalla(datosServidor);
+                    } catch (error) {
+                        estadoDiv.innerText = "Error: No se pudo conectar al servidor Python.";
+                        estadoDiv.style.color = "red";
+                    }
+                }
+            };
+        }
+
+        function mostrarEnPantalla(jugadores) {
+            const lista = document.getElementById('lista-jugadores');
+            lista.innerHTML = '';
+            jugadores.forEach(j => {
+                const li = document.createElement('li');
+                li.innerText = `#${j.numero} - ${j.nombre} (Pos: ${j.posicion})`;
+                lista.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
