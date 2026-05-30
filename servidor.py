@@ -8,7 +8,7 @@ CORS(app)
 
 # === REEMPLAZA CON TU ENLACE DE MONGODB ATLAS ===
 MONGO_URI = "mongodb+srv://efrener0349:jrxwZLg8EtCmrruc@efren.tr0fzs8.mongodb.net/?appName=efren"
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tlsAllowInvalidCertificates=True)
 db = client['organizacion_deportiva']
 coleccion_jugadores = db['jugadores']
 
